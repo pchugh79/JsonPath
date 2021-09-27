@@ -213,15 +213,7 @@ public class JsonPath {
             return t;
         }
 
-        if (optAsPathList) {
-            return (T) configuration.jsonProvider().createArray();
-        }
-
-        if (optAlwaysReturnList) {
-            return (T) configuration.jsonProvider().createArray();
-        }
-
-        return (T) (path.isDefinite() ? null : configuration.jsonProvider().createArray());
+        return (T) (optAsPathList || optAlwaysReturnList || !path.isDefinite() ? configuration.jsonProvider().createArray() : null);
     }
 
     /**

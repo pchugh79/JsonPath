@@ -14,14 +14,19 @@
  */
 package com.jayway.jsonpath;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 @SuppressWarnings("serial")
 public class InvalidPathException extends JsonPathException {
 
+    Logger logger = LoggerFactory.getLogger(InvalidPathException.class);
     public InvalidPathException() {
     }
 
     public InvalidPathException(String message) {
         super(message);
+        logger.error(message);
     }
 
     public InvalidPathException(String message, Throwable cause) {

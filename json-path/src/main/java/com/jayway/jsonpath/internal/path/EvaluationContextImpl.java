@@ -118,6 +118,10 @@ public class EvaluationContextImpl implements EvaluationContext {
         return Collections.unmodifiableCollection(updateOperations);
     }
 
+    @Override
+    public List<PathRef> pathRefList() {
+        return Collections.unmodifiableList(updateOperations);
+    }
 
     @SuppressWarnings("unchecked")
     @Override

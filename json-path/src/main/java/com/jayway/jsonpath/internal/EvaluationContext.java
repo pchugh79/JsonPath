@@ -70,4 +70,6 @@ public interface EvaluationContext {
 
     Collection<PathRef> updateOperations();
 
+    List<PathRef> pathRefList();
+
 }

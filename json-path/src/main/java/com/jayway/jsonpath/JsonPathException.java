@@ -30,4 +30,9 @@ public class JsonPathException extends RuntimeException {
     public JsonPathException(Throwable cause) {
         super(cause);
     }
+
+    @Override
+    public synchronized Throwable fillInStackTrace() {
+        return this;
+    }
 }

@@ -130,12 +130,17 @@ public class EvaluationContextImpl implements EvaluationContext {
     public <T> T getValue(boolean unwrap) {
         if (path.isDefinite()) {
             if(resultIndex == 0){
-                throw new PathNotFoundException("No results for path: " + path.toString());
+                if (configuration.containsOption(Option.SUPPRESS_EXCEPTIONS)) {
+                    return null;
+                }
+                else {
+                    throw new PathNotFoundException("No results for path: " + path.toString());
+                }
             }
             int len = jsonProvider().length(valueResult);
             Object value = (len > 0) ? jsonProvider().getArrayIndex(valueResult, len-1) : null;
             if (value != null && unwrap){
-              value = jsonProvider().unwrap(value);
+                value = jsonProvider().unwrap(value);
             }
             return (T) value;
         }
@@ -145,8 +150,13 @@ public class EvaluationContextImpl implements EvaluationContext {
     @SuppressWarnings("unchecked")
     @Override
     public <T> T getPath() {
-        if(resultIndex == 0){
-            throw new PathNotFoundException("No results for path: " + path.toString());
+        if(resultIndex == 0 ){
+            if (configuration.containsOption(Option.SUPPRESS_EXCEPTIONS)) {
+                return null;
+            }
+            else {
+                throw new PathNotFoundException("No results for path: " + path.toString());
+            }
         }
         return (T)pathResult;
     }

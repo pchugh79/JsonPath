@@ -22,6 +22,8 @@ import com.jayway.jsonpath.internal.PathRef;
 import com.jayway.jsonpath.internal.Utils;
 import com.jayway.jsonpath.internal.path.PathCompiler;
 import com.jayway.jsonpath.spi.json.JsonProvider;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -95,6 +97,7 @@ import static com.jayway.jsonpath.internal.Utils.*;
 public class JsonPath {
 
     private final Path path;
+    private static final Logger logger = LoggerFactory.getLogger(JsonPath.class);
 
     private JsonPath(String jsonPath, Predicate[] filters) {
         notNull(jsonPath, "path can not be null");
@@ -171,43 +174,48 @@ public class JsonPath {
     public <T> T read(Object jsonObject, Configuration configuration) {
         boolean optAsPathList = configuration.containsOption(AS_PATH_LIST);
         boolean optAlwaysReturnList = configuration.containsOption(Option.ALWAYS_RETURN_LIST);
-        boolean optSuppressExceptions = configuration.containsOption(Option.SUPPRESS_EXCEPTIONS);
 
         try {
             if (path.isFunctionPath()) {
                 if (optAsPathList || optAlwaysReturnList) {
                     throw new JsonPathException("Options " + AS_PATH_LIST + " and " + ALWAYS_RETURN_LIST + " are not allowed when using path functions!");
                 }
-                return path.evaluate(jsonObject, jsonObject, configuration).getValue(true);
+                return (T) handleResponse(path.evaluate(jsonObject, jsonObject, configuration).getValue(true), configuration, false, false);
 
             } else if (optAsPathList) {
-                return (T) path.evaluate(jsonObject, jsonObject, configuration).getPath();
+                return (T) handleResponse(path.evaluate(jsonObject, jsonObject, configuration).getPath(), configuration, true, optAlwaysReturnList);
 
             } else {
                 Object res = path.evaluate(jsonObject, jsonObject, configuration).getValue(false);
-                if (optAlwaysReturnList && path.isDefinite()) {
-                    Object array = configuration.jsonProvider().createArray();
-                    configuration.jsonProvider().setArrayIndex(array, 0, res);
-                    return (T) array;
-                } else {
-                    return (T) res;
+                if (res != null) {
+                    if (optAlwaysReturnList && path.isDefinite()) {
+                        Object array = configuration.jsonProvider().createArray();
+                        configuration.jsonProvider().setArrayIndex(array, 0, res);
+                        return (T) array;
+                    } else {
+                        return (T) res;
+                    }
+                }
+                else {
+                    return handleResponse(null, configuration, optAsPathList, optAlwaysReturnList);
                 }
             }
         } catch (RuntimeException e) {
-            if (!optSuppressExceptions) {
+            logger.error("At JsonPath::read suppress exception:: {}", configuration.containsOption(Option.SUPPRESS_EXCEPTIONS), e);
+            if (!configuration.containsOption(Option.SUPPRESS_EXCEPTIONS)) {
                 throw e;
-            } else {
-                if (optAsPathList) {
-                    return (T) configuration.jsonProvider().createArray();
-                } else {
-                    if (optAlwaysReturnList) {
-                        return (T) configuration.jsonProvider().createArray();
-                    } else {
-                        return (T) (path.isDefinite() ? null : configuration.jsonProvider().createArray());
-                    }
-                }
             }
         }
+        return handleResponse(null, configuration, optAsPathList, optAlwaysReturnList);
+    }
+
+    @SuppressWarnings({"unchecked"})
+    private <T> T handleResponse(T t, Configuration configuration, boolean optAsPathList, boolean optAlwaysReturnList) {
+        if (t != null) {
+            return t;
+        }
+
+        return (T) (optAsPathList || optAlwaysReturnList || !path.isDefinite() ? configuration.jsonProvider().createArray() : null);
     }
 
     /**
